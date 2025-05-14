@@ -1,3 +1,6 @@
+---
+mode: 'agent'
+---
 ## General Instructions
 
 - Look at the code and create a 2 word "title" based on the intent of the code. For example "read-file"

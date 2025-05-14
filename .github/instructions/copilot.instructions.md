@@ -1,3 +1,6 @@
+---
+mode: 'agent'
+---
 ## General Instructions
 - Ensure any code you produce is correct.
 - Ensure any changes you apply are summarised within a file in an easily readable form in the .copilot directory.
