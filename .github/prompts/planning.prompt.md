@@ -1,3 +1,6 @@
+---
+mode: 'agent'
+---
 # Copilot Planning Guidelines
 
 ## Introduction
