@@ -75,7 +75,5 @@ These instructions guide how to approach and execute tasks using a structured pl
 - Highlight any remaining tasks or future improvements
 - Include instructions for the user on how to verify the implementation
 
----
-Version: 1.0
-Last Updated: [Current Date]
+
 
