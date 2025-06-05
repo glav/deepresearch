@@ -46,6 +46,7 @@
         50051,
         50052
     ],
+    "postCreateCommand": "bash .devcontainer/post-script.sh",
     "mounts": [
 		// map host ssh to container
 		"source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached"
