@@ -1,2 +1,3 @@
-# copilotplay
-A sandbox to test various copilot and model operations
+# Deep Research Tests
+A sandbox to perform some deep research experiments
+
