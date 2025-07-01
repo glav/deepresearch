@@ -1,6 +1,6 @@
 import os
 from openai import OpenAI
-from prompts import research_input, reasoning_input, tools_input
+from input_parameters import research_input, reasoning_input, tools_input
 from time import sleep
 
 def do_research():
@@ -10,7 +10,7 @@ def do_research():
   modelo4="o4-mini-deep-research-2025-06-26"
 
   response = client.responses.create(
-    model=modelo4,
+    model=modelo3,
     input=research_input,
     reasoning=reasoning_input,
     tools=tools_input,
