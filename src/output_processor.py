@@ -6,8 +6,8 @@ output items from OpenAI deep research responses and generating markdown files.
 """
 
 import os
-from typing import List, Tuple
 from time import sleep
+from datetime import datetime
 
 def wait_for_response(client, response, interval: int = 2) -> any:
     """
@@ -20,6 +20,9 @@ def wait_for_response(client, response, interval: int = 2) -> any:
     Returns:
         None - The function will block until the response is complete
     """
+    start_time = datetime.now()
+    print(f"Starting status check at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
     last_status = ''
     while response.status in {"queued", "in_progress"}:
         if response.status != last_status:
@@ -27,126 +30,152 @@ def wait_for_response(client, response, interval: int = 2) -> any:
             last_status = response.status
         sleep(interval)
         response = client.responses.retrieve(response.id)
-    print(f"Final status: {response.status}")
-    return response
 
-def process_response_output(response, model_suffix: str = "") -> None:
+    end_time = datetime.now()
+    total_time = end_time - start_time
+    print(f"Final status: {response.status}")
+    print(f"Status check completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Total duration: {total_time}")
+    return response, total_time
+
+def _extract_token_metrics(response) -> str:
     """
-    Process the output from a deep research response and generate markdown files.
+    Extract token usage metrics from the OpenAI response object.
+
+    Args:
+        response: The OpenAI response object
+
+    Returns:
+        String containing formatted token usage information
+    """
+    token_info = "Token usage not available"
+
+    # Check for common token usage attributes
+    if hasattr(response, 'usage') and response.usage:
+        usage = response.usage
+        if hasattr(usage, 'total_tokens'):
+            parts = [f"Total: {usage.total_tokens}"]
+            if hasattr(usage, 'prompt_tokens'):
+                parts.append(f"Prompt: {usage.prompt_tokens}")
+            if hasattr(usage, 'input_tokens'):
+                parts.append(f"Input: {usage.input_tokens}")
+            if hasattr(usage, 'output_tokens'):
+                parts.append(f"Output: {usage.output_tokens}")
+            if hasattr(usage, 'completion_tokens'):
+                parts.append(f"Completion: {usage.completion_tokens}")
+            if hasattr(usage, 'reasoning_tokens'):
+                parts.append(f"Reasoning: {usage.reasoning_tokens}")
+            token_info = "\n   - ".join(parts) + " tokens"
+    elif hasattr(response, 'token_usage'):
+        # Alternative token usage structure
+        usage = response.token_usage
+        if hasattr(usage, 'total'):
+            token_info = f"  - Total: {usage.total} tokens"
+
+    return token_info
+
+def process_response_output(response, time_taken, model_suffix: str = "") -> None:
+    """
+    Process the output from a deep research response and generate a markdown file.
 
     Args:
         response: The OpenAI response object containing output items
-        output_dir: Directory path where output files will be created
-        model_suffix: Optional suffix to add to output filenames (e.g., "-o3-model")
+        time_taken: Duration of the response processing
+        model_suffix: Optional suffix to add to output filename (e.g., "-o3-model")
 
     Returns:
-        None - Files are written to the output directory
+        None - File is written to the output directory
     """
-    # Create output directory if it doesn't exist
     output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
     os.makedirs(output_dir, exist_ok=True)
 
-    # Collect all output items
-    all_items, reasoning_items = _collect_output_items(response.output)
+    # Extract token usage metrics
+    token_metrics = _extract_token_metrics(response)
 
-    # Write output files
-    _write_output_files(output_dir, all_items, reasoning_items, model_suffix)
+    # Process all items consistently
+    content = _process_all_items(response.output, time_taken, token_metrics)
 
-    # Print confirmation
+    # Write single output file
     filename_suffix = f"-{model_suffix}" if model_suffix else ""
-    print(f"Files created in {output_dir}:")
-    print(f"- output_items{filename_suffix}.md")
-    print(f"- reasoning{filename_suffix}.md")
+    output_file = os.path.join(output_dir, f"output_items{filename_suffix}.md")
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    print(f"File created: {output_file}")
+    print(f"Token usage: {token_metrics}")
 
 
-def _collect_output_items(output_items) -> Tuple[List[str], List[str]]:
+def _process_all_items(output_items, time_taken, token_metrics) -> str:
     """
-    Collect and format output items into markdown content.
+    Process all output items into a single markdown document.
 
     Args:
         output_items: Iterable of output items from the response
+        time_taken: Duration of the response processing
+        token_metrics: String containing formatted token usage information
 
     Returns:
-        Tuple of (all_items, reasoning_items) as lists of markdown strings
+        String containing the complete markdown content
     """
-    all_items = []
-    reasoning_items = []
+    content = [f"# All Output Items \n - Total Time: {time_taken}\n - Token Usage:\n   - {token_metrics}\n\n"]
 
     for item in output_items:
-        # Add all items to the general list
-        all_items.append(f"## Item Type: {item.type}\n")
+        content.append(f"## Item Type: {item.type}\n")
 
+        # Process each item type with consistent formatting
         if item.type == "reasoning":
-            reasoning_content = _process_reasoning_item(item)
-            all_items.extend(reasoning_content)
-            reasoning_items.append(f"## Reasoning Item\n")
-            reasoning_items.extend(reasoning_content[1:])  # Skip the type header for reasoning file
-
+            item_content = _format_reasoning_item(item)
         elif item.type == "web_search_call":
-            web_search_content = _process_web_search_item(item)
-            all_items.extend(web_search_content)
-
+            item_content = _format_web_search_item(item)
         else:
-            other_content = _process_other_item(item)
-            all_items.extend(other_content)
+            item_content = _format_general_item(item)
 
-    return all_items, reasoning_items
+        content.append(item_content)
+        content.append("--------------------\n")
+
+    return "".join(content)
 
 
-def _process_reasoning_item(item) -> List[str]:
-    """Process a reasoning type item and return formatted content."""
-    content = []
+def _format_reasoning_item(item) -> str:
+    """Format a reasoning item consistently."""
+    parts = []
 
     if hasattr(item, 'summary') and item.summary:
-        for s in item.summary:
-            content.append(f"  - SummaryText: [{s.text}]\n")
+        for summary in item.summary:
+            parts.append(f"  - Summary: {summary.text}\n")
+            parts.append("---\n")
 
-    if hasattr(item, 'status'):
-        content.append(f"  - Status: [{item.status}]\n")
+    if hasattr(item, 'status') and item.status:
+        parts.append(f"  - Status: {item.status}\n")
+        parts.append("---\n")
 
-    content.append("\n---\n")
-    return content
+    return "".join(parts) if parts else "  - No reasoning content available\n"
 
 
-def _process_web_search_item(item) -> List[str]:
-    """Process a web_search_call type item and return formatted content."""
-    content = []
+def _format_web_search_item(item) -> str:
+    """Format a web search item consistently."""
+    parts = []
 
     if hasattr(item, 'action') and item.action:
-        for acts in item.action:
-            content.append(f"  - {acts}\n")
+        for action in item.action:
+            parts.append(f"  - Action: {action}\n")
+            parts.append("---\n")
 
-    content.append("\n---\n")
-    return content
+    return "".join(parts) if parts else "  - No search actions available\n"
 
 
-def _process_other_item(item) -> List[str]:
-    """Process other types of items and return formatted content."""
-    content = []
+def _format_general_item(item) -> str:
+    """Format any other item type consistently."""
+    parts = []
 
     if hasattr(item, 'content') and item.content:
         for content_item in item.content:
             if hasattr(content_item, 'text'):
-                content.append(f"  - ContentText: [{content_item.text}]\n")
+                parts.append(f"  - Content: {content_item.text}\n")
+                parts.append("---\n")
     elif hasattr(item, 'text'):
-        content.append(f"  - ItemText: [{item.text}]\n")
+        parts.append(f"  - Text: {item.text}\n")
+        parts.append("---\n")
 
-    content.append("\n---\n")
-    return content
-
-
-def _write_output_files(output_dir: str, all_items: List[str], reasoning_items: List[str], model_suffix: str) -> None:
-    """Write the collected items to markdown files."""
-    filename_suffix = f"-{model_suffix}" if model_suffix else ""
-
-    # Write output_items.md
-    output_items_file = os.path.join(output_dir, f"output_items{filename_suffix}.md")
-    with open(output_items_file, "w", encoding="utf-8") as f:
-        f.write("# All Output Items\n\n")
-        f.writelines(all_items)
-
-    # Write reasoning.md
-    reasoning_file = os.path.join(output_dir, f"reasoning{filename_suffix}.md")
-    with open(reasoning_file, "w", encoding="utf-8") as f:
-        f.write("# Reasoning Items\n\n")
-        f.writelines(reasoning_items)
+    return "".join(parts) if parts else "  - No content available\n"
