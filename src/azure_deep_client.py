@@ -4,33 +4,26 @@ from input_parameters import research_input, reasoning_input, tools_input
 from load_env import load_env
 from time import sleep
 from output_processor import process_response_output, wait_for_response
+from models import AZURE_03_PRO, AZURE_03_MINI, AZURE_04_MINI, PROVIDER_AZURE
 
 def do_azure_research():
-
-    # Azure OpenAI deep research models
-    modelo3 = "o3-pro"
-    modelo3Version = "2025-04-01-preview"
-    modelo3Mini = "o3-mini"
-    modelo3MiniVersion = "2025-04-01-preview"
-    modelo4Mini = "o4-mini"
-    modelo4MiniVersion = "2025-04-01-preview"
+    print("Azure OpenAI Research Client")
+    model = AZURE_03_MINI # | AZURE_03_PRO, AZURE_03_MINI, AZURE_04_MINI
 
     # Initialize Azure OpenAI client
     client = AzureOpenAI(
         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
         api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-        api_version=modelo4MiniVersion
-        #api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
-    )
+        api_version=PROVIDER_AZURE[model]["version"],  # Use the version from PROVIDER_AZURE
 
+    )
 
     try:
         response = client.responses.create(
-            model=modelo4Mini,
-            #model=modelo3Mini,
+            model=PROVIDER_AZURE[model]["deployment_name"],  # Use deployment name from PROVIDER_AZURE
             input=research_input,
             reasoning=reasoning_input,
-            #tools=tools_input,
+            #tools=tools_input,  # 03-mini, 03-pro, 04-mini do not support tools like openAI, need to provide my own implementation
             background=True
         )
 
