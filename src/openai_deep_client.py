@@ -3,16 +3,17 @@ from openai import OpenAI
 from input_parameters import research_input, reasoning_input, tools_input
 from time import sleep
 from output_processor import process_response_output, wait_for_response
+from models import PROVIDER_OPENAI, OPENAI_03, OPENAI_04_MINI
 
-def do_research():
+def do_openai_research():
+  print("OpenAI Research Client")
   client = OpenAI()
 
-  modelo3 = "o3-deep-research"
-  modelo4="o4-mini-deep-research-2025-06-26"
+  model = OPENAI_03 # OPENAI_03, OPENAI_04_MINI
 
   try:
     response = client.responses.create(
-      model=modelo3,
+      model=PROVIDER_OPENAI[model]["deployment_name"],  # Use deployment name from PROVIDER_OPENAI
       input=research_input,
       reasoning=reasoning_input,
       tools=tools_input,
