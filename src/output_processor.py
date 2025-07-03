@@ -92,8 +92,14 @@ def process_response_output(response, time_taken, model_suffix: str = "") -> Non
     # Extract token usage metrics
     token_metrics = _extract_token_metrics(response)
 
+    job_status = "incomplete"
+    if response.status not in {"succeeded", "completed"}:
+        job_status = f"{response.status}: *{response.error.code}* - {response.error.message}"
+    else:
+        job_status = f"*{response.status}*"
+
     # Process all items consistently
-    content = _process_all_items(response.output, time_taken, token_metrics)
+    content = _process_all_items(response.output, time_taken, token_metrics, job_status)
 
     # Write single output file
     filename_suffix = f"-{model_suffix}" if model_suffix else ""
@@ -106,7 +112,7 @@ def process_response_output(response, time_taken, model_suffix: str = "") -> Non
     print(f"Token usage: {token_metrics}")
 
 
-def _process_all_items(output_items, time_taken, token_metrics) -> str:
+def _process_all_items(output_items, time_taken, token_metrics, job_status) -> str:
     """
     Process all output items into a single markdown document.
 
@@ -118,7 +124,7 @@ def _process_all_items(output_items, time_taken, token_metrics) -> str:
     Returns:
         String containing the complete markdown content
     """
-    content = [f"# All Output Items \n - Total Time: {time_taken}\n - Token Usage:\n   - {token_metrics}\n\n"]
+    content = [f"# All Output Items \n - Job Status: {job_status}\n - Total Time: {time_taken}\n - Token Usage:\n   - {token_metrics}\n\n"]
 
     for item in output_items:
         content.append(f"## Item Type: {item.type}\n")
@@ -132,7 +138,7 @@ def _process_all_items(output_items, time_taken, token_metrics) -> str:
             item_content = _format_general_item(item)
 
         content.append(item_content)
-        content.append("--------------------\n")
+        content.append("---\n")
 
     return "".join(content)
 
@@ -143,12 +149,10 @@ def _format_reasoning_item(item) -> str:
 
     if hasattr(item, 'summary') and item.summary:
         for summary in item.summary:
-            parts.append(f"  - Summary: {summary.text}\n")
-            parts.append("---\n")
+            parts.append(f"\n      - Summary: {summary.text}\n")
 
     if hasattr(item, 'status') and item.status:
-        parts.append(f"  - Status: {item.status}\n")
-        parts.append("---\n")
+        parts.append(f"\n      - Status: {item.status}\n")
 
     return "".join(parts) if parts else "  - No reasoning content available\n"
 
@@ -160,7 +164,6 @@ def _format_web_search_item(item) -> str:
     if hasattr(item, 'action') and item.action:
         for action in item.action:
             parts.append(f"  - Action: {action}\n")
-            parts.append("---\n")
 
     return "".join(parts) if parts else "  - No search actions available\n"
 
@@ -173,9 +176,7 @@ def _format_general_item(item) -> str:
         for content_item in item.content:
             if hasattr(content_item, 'text'):
                 parts.append(f"  - Content: {content_item.text}\n")
-                parts.append("---\n")
     elif hasattr(item, 'text'):
         parts.append(f"  - Text: {item.text}\n")
-        parts.append("---\n")
 
     return "".join(parts) if parts else "  - No content available\n"

@@ -6,9 +6,6 @@ from time import sleep
 from output_processor import process_response_output, wait_for_response
 
 def do_azure_research():
-    # Load environment variables
-    load_env()
-
 
     # Azure OpenAI deep research models
     modelo3 = "o3-pro"
