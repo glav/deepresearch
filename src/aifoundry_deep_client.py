@@ -7,6 +7,9 @@ from azure.ai.agents.models import DeepResearchTool, MessageRole, ThreadMessage
 from prompts import (
     deep_research_system_message,
     deep_research_user_query,
+    deep_research_experiment_system_message,
+    deep_research_epa_system_prompt,
+    deep_research_epa_user_prompt,
 )
 
 def fetch_and_print_new_agent_response(
@@ -96,7 +99,9 @@ def do_aifoundry_research():
             agent = agents_client.create_agent(
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
                 name="DeepResearchAgent",
-                instructions=deep_research_system_message,
+                #instructions=deep_research_system_message,
+                instructions=deep_research_epa_system_prompt,
+                description="An agent that performs deep research using the Deep Research tool.",
                 tools=deep_research_tool.definitions,
             )
 
@@ -112,12 +117,13 @@ def do_aifoundry_research():
                 thread_id=thread.id,
                 role="user",
                 content=(
-                    deep_research_user_query
+                    deep_research_epa_user_prompt
                 ),
             )
             print(f"Created message, ID: {message.id}")
 
             print(f"Start processing the message... this may take a few minutes to finish. Be patient!")
+            all_responses = []
             # Poll the run as long as run status is queued or in progress
             run = agents_client.runs.create(thread_id=thread.id, agent_id=agent.id)
             last_message_id = None
