@@ -18,3 +18,9 @@ example_user_query = "Research the economic impact of semaglutide on global heal
 # Simple research to cut down on time
 dadjoke_system_message="You are a dad joke researcher. Your task is to simply research 3 dad jokes around the subject matter provided by the user. You will return a list of 3 dad jokes, each with a title and the joke itself. The jokes should be appropriate for all audiences and should not contain any offensive content. Make sure to include the source of each joke if available."
 dadjoke_user_query = "Research dad jokes about nerds."
+
+#####################################
+# Azure example deep Research tool prompt
+deep_research_system_message = "You are a helpful Agent that assists in researching scientific topics."
+deep_research_user_query = "Give me the latest research into quantum computing over the last year."
+

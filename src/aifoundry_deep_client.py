@@ -4,7 +4,10 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from azure.ai.agents import AgentsClient
 from azure.ai.agents.models import DeepResearchTool, MessageRole, ThreadMessage
-
+from prompts import (
+    deep_research_system_message,
+    deep_research_user_query,
+)
 
 def fetch_and_print_new_agent_response(
     thread_id: str,
@@ -27,15 +30,16 @@ def fetch_and_print_new_agent_response(
     return response.id
 
 
-def create_research_summary(
-        message : ThreadMessage,
-        filepath: str = "research_summary.md"
-) -> None:
+def create_research_summary(message : ThreadMessage) -> None:
     if not message:
         print("No message content provided, cannot create research summary.")
         return
 
-    with open(filepath, "w", encoding="utf-8") as fp:
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f"output_items_aifoundry_o3_deep_research.md")
+
+    with open(output_file, "w", encoding="utf-8") as fp:
         # Write text summary
         text_summary = "\n\n".join([t.text.value.strip() for t in message.text_messages])
         fp.write(text_summary)
@@ -51,21 +55,26 @@ def create_research_summary(
                     fp.write(f"- [{title}]({url})\n")
                     seen_urls.add(url)
 
-    print(f"Research summary written to '{filepath}'.")
+    print(f"Research summary written to '{output_file}'.")
 
+def create_project_client() -> AIProjectClient:
+    """
+    Create and return an AIProjectClient instance with DefaultAzureCredential.
+    This client is used to interact with the AI Foundry project service.
+    """
+    if "PROJECT_ENDPOINT" not in os.environ:
+        raise EnvironmentError("Please set PROJECT_ENDPOINT in your environment variables.")
+
+    return AIProjectClient(
+        endpoint=os.environ["PROJECT_ENDPOINT"],
+        credential=DefaultAzureCredential(),
+    )
 
 def do_aifoundry_research():
     print("AI Foundry Deep Research Client")
 
-    # Load environment variables
-    if "PROJECT_ENDPOINT" not in os.environ or "BING_RESOURCE_NAME" not in os.environ:
-        raise EnvironmentError("Please set PROJECT_ENDPOINT and BING_RESOURCE_NAME in your environment variables.")
-
-      # Initialize AI Project Client with DefaultAzureCredential
-    project_client = AIProjectClient(
-        endpoint=os.environ["PROJECT_ENDPOINT"],
-        credential=DefaultAzureCredential(),
-    )
+    # Initialize AI Project Client with DefaultAzureCredential
+    project_client = create_project_client()
 
     conn_id = project_client.connections.get(name=os.environ["BING_RESOURCE_NAME"]).id
 
@@ -86,8 +95,8 @@ def do_aifoundry_research():
             # update the agent with the Deep Research tool.
             agent = agents_client.create_agent(
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
-                name="my-agent",
-                instructions="You are a helpful Agent that assists in researching scientific topics.",
+                name="DeepResearchAgent",
+                instructions=deep_research_system_message,
                 tools=deep_research_tool.definitions,
             )
 
@@ -103,7 +112,7 @@ def do_aifoundry_research():
                 thread_id=thread.id,
                 role="user",
                 content=(
-                    "Give me the latest research into quantum computing over the last year."
+                    deep_research_user_query
                 ),
             )
             print(f"Created message, ID: {message.id}")
@@ -129,6 +138,19 @@ def do_aifoundry_research():
                 print(f"Run failed: {run.last_error}")
 
             # Fetch the final message from the agent in the thread and create a research summary
+            msgs = agents_client.messages.list(
+                thread_id=thread.id
+            )
+            # print("***")
+            # for msg in msgs:
+            #     print(f"Message ID: {msg.id}, Role: {msg.role}, Created At: {msg.created_at}")
+            #     for text in msg.text_messages:
+            #         print(f"Text: {text.text.value}")
+            #     if msg.url_citation_annotations:
+            #         for ann in msg.url_citation_annotations:
+            #             print(f"URL Citation: [{ann.url_citation.title}]({ann.url_citation.url})")
+
+            # print("***")
             final_message = agents_client.messages.get_last_message_by_role(
                 thread_id=thread.id, role=MessageRole.AGENT
             )
