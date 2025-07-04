@@ -14,9 +14,9 @@ def main():
 
     #do_basic_completion()
 
-    do_openai_research()
+    #do_openai_research()
     #do_azure_research()
-    #do_aifoundry_research()
+    do_aifoundry_research()
 
 
 if __name__ == "__main__":
