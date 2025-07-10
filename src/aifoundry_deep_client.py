@@ -156,10 +156,11 @@ def do_aifoundry_research():
 
             # Create and start the spinner
             spinner = TerminalSpinner(message="Deep research in progress")
-
-            while run.status.lower() in ("queued", "in_progress"):
+            run_status = run.status.value.lower() if hasattr(run, 'status') else run.status.lower()
+            while run_status in ("queued", "in_progress"):
                 time.sleep(1)
                 run = agents_client.runs.get(thread_id=thread.id, run_id=run.id)
+                run_status = run.status.value.lower() if hasattr(run, 'status') else run.status.lower()
 
                 last_message_id = fetch_and_print_new_agent_response(
                     thread_id=thread.id,
@@ -169,9 +170,9 @@ def do_aifoundry_research():
                 )
 
                 # Update spinner with current status
-                if last_status != run.status:
-                    spinner.update(f"Deep research in progress - Status: {run.status}")
-                    last_status = run.status
+                if last_status != run_status:
+                    spinner.update(f"Deep research in progress - Status: {run_status}")
+                    last_status = run_status
                 else:
                     spinner.update()
 
