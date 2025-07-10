@@ -8,6 +8,7 @@ output items from OpenAI deep research responses and generating markdown files.
 import os
 from time import sleep
 from datetime import datetime
+from terminal_spinner import TerminalSpinner
 
 def wait_for_response(client, response, interval: int = 2) -> any:
     """
@@ -21,18 +22,21 @@ def wait_for_response(client, response, interval: int = 2) -> any:
         None - The function will block until the response is complete
     """
     start_time = datetime.now()
-    print(f"Starting status check at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     last_status = ''
+    spinner = TerminalSpinner(message="Research in progress")
     while response.status in {"queued", "in_progress"}:
         if response.status != last_status:
-            print(f"Current status: {response.status}")
+            spinner.update(f"Research in progress - Status: {response.status}")
             last_status = response.status
+        else:
+            spinner.update()
         sleep(interval)
         response = client.responses.retrieve(response.id)
 
     end_time = datetime.now()
     total_time = end_time - start_time
+    spinner.stop("✓ Deep research complete!")
     print(f"Final status: {response.status}")
     print(f"Status check completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Total duration: {total_time}")
