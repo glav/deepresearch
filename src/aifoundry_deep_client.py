@@ -14,6 +14,8 @@ from prompts import (
     deep_research_epa_user_prompt,
     quick_system_message,
     quick_user_query,
+    example_system_message,
+    example_user_query
 )
 
 class ResponseMessage:
@@ -130,7 +132,7 @@ def do_aifoundry_research():
             agent = agents_client.create_agent(
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
                 name="DeepResearchAgent",
-                instructions=deep_research_epa_system_prompt,
+                instructions=example_system_message,
                 #instructions=quick_system_message,
                 description="An agent that performs deep research using the Deep Research tool.",
                 tools=deep_research_tool.definitions,
@@ -146,7 +148,7 @@ def do_aifoundry_research():
                 thread_id=thread.id,
                 role="user",
                 content=(
-                    deep_research_epa_user_prompt
+                    example_user_query
                 ),
             )
             print(f"Created message, ID: {message.id}")
@@ -184,7 +186,7 @@ def do_aifoundry_research():
             end_time = datetime.now()
             total_time = end_time - start_time
             spinner.stop("✓ Deep research complete!")
-            print(f"Run finished with status: {run.status}, ID: {run.id}, Total duration: {total_time}")
+            print(f"Run finished with status: {run_status}, ID: {run.id}, Total duration: {total_time}")
 
             if run.status == "failed":
                 print(f"Run failed: {run.last_error}, Total duration: {total_time}")
