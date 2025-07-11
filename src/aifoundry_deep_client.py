@@ -6,17 +6,6 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.agents import AgentsClient
 from azure.ai.agents.models import DeepResearchTool, MessageRole, ThreadMessage
 from terminal_spinner import TerminalSpinner
-from prompts import (
-    deep_research_system_message,
-    deep_research_user_query,
-    deep_research_experiment_system_message,
-    deep_research_epa_system_prompt,
-    deep_research_epa_user_prompt,
-    quick_system_message,
-    quick_user_query,
-    example_system_message,
-    example_user_query
-)
 
 class ResponseMessage:
     def __init__(self, text_messages: List, url_citation_annotations: Optional[any] = None):
@@ -68,25 +57,25 @@ def create_research_summary(all_messages : List[ResponseMessage],time_taken, tok
         # Write individual output steps
         for i, msg in enumerate(all_messages):
             if i < len(all_messages) - 1:  # Not the final message
-                fp.write(f"- Message {i + 1}:\n")
+                fp.write(f"---\n## Item Type: Message (#{i + 1}):\n")
                 for text in msg.text_messages:
-                    fp.write(f"  - Text: {text.text.value}\n")
+                    fp.write(f"- Text: {text.text.value}\n")
                 if msg.url_citation_annotations:
                     for ann in msg.url_citation_annotations:
                         if ann.url_citation:
-                            fp.write("  - URL Citation:\n")
+                            fp.write("- URL Citation:\n")
                             if hasattr(ann.url_citation,'title'):
-                                fp.write(f"    - Title: [{ann.url_citation.title}]\n")
+                                fp.write(f"  - Title: [{ann.url_citation.title}]\n")
                             if hasattr(ann.url_citation,'url'):
-                                fp.write(f"    - Url:({ann.url_citation.url})\n")
+                                fp.write(f"  - Url:({ann.url_citation.url})\n")
                             if hasattr(ann.url_citation,'text'):
-                                fp.write(f"    - Text: [{ann.url_citation.text}]\n")
+                                fp.write(f"  - Text: [{ann.url_citation.text}]\n")
                             if hasattr(ann.url_citation,'start_index'):
-                                fp.write(f"    - Start Index:({ann.url_citation.start_index})\n")
+                                fp.write(f"  - Start Index:({ann.url_citation.start_index})\n")
                             if hasattr(ann.url_citation,'end_index'):
-                                fp.write(f"    - End Index:({ann.url_citation.end_index})\n")
+                                fp.write(f"  - End Index:({ann.url_citation.end_index})\n")
             else:
-                fp.write("\n\n## Final Output\n")
+                fp.write("---\n\n# Final Output\n")
                 text_summary = "\n\n".join([t.text.value.strip() for t in msg.text_messages])
                 fp.write(text_summary)
 
@@ -104,7 +93,7 @@ def create_research_summary(all_messages : List[ResponseMessage],time_taken, tok
     print(f"Research summary written to '{output_file}'.")
 
 
-def do_aifoundry_research():
+def do_aifoundry_research(system_prompt: str, user_query: str):
     print("AI Foundry Deep Research Client")
 
     # Initialize AI Project Client with DefaultAzureCredential
@@ -132,8 +121,7 @@ def do_aifoundry_research():
             agent = agents_client.create_agent(
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
                 name="DeepResearchAgent",
-                instructions=example_system_message,
-                #instructions=quick_system_message,
+                instructions=system_prompt,
                 description="An agent that performs deep research using the Deep Research tool.",
                 tools=deep_research_tool.definitions,
             )
@@ -148,7 +136,7 @@ def do_aifoundry_research():
                 thread_id=thread.id,
                 role="user",
                 content=(
-                    example_user_query
+                    user_query
                 ),
             )
             print(f"Created message, ID: {message.id}")
