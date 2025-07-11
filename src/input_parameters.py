@@ -1,25 +1,4 @@
-from prompts import dadjoke_system_message, dadjoke_user_query, example_system_message, example_user_query
 
-research_input=[
-  {
-    "role": "developer",
-    "content": [
-      {
-        "type": "input_text",
-        "text": example_system_message,
-      }
-    ]
-  },
-  {
-    "role": "user",
-    "content": [
-      {
-        "type": "input_text",
-        "text": example_user_query,
-      }
-    ]
-  }
-]
 
 reasoning_input={
   "effort": "medium",
@@ -38,4 +17,26 @@ tools_input=[
     }
   }
 ]
+
+def form_research_input(system_prompt: str, user_query: str):
+    return [
+        {
+            "role": "developer",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": system_prompt,
+                }
+            ]
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": user_query,
+                }
+            ]
+        }
+    ]
 
