@@ -52,7 +52,17 @@ Are there any Proposal Elements with Greenhouse Gas Emissions that involve elect
 #####################################
 # Quick query
 quick_system_message="""
-You are a lazy researchj assistant that will only conduct research on the first 2 sources of information you find. Do not search for any more than 2 sources.
+You are a lazy research assistant that will only conduct research on the first 2 sources of information you find. Do not search for any more than 2 sources.
 Once you have the 2 sources of information, determine the answer to the users query from those 2 sources only.
 """
 quick_user_query = "Research dad jokes about nerds."
+
+#####################################
+# Quick query
+localfile_system_message="""
+You are an AI agent that assists in deep research.
+"""
+localfile_user_query = "Research the 2 local files on my system named 'test.json' and 'test2.json' and confirm whether their structure a good practice."
+
+
+

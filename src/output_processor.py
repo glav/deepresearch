@@ -9,6 +9,7 @@ import os
 from time import sleep
 from datetime import datetime
 from terminal_spinner import TerminalSpinner
+from typing import List, Optional
 
 def wait_for_response(client, response, interval: int = 2) -> any:
     """
@@ -184,3 +185,65 @@ def _format_general_item(item) -> str:
         parts.append(f"  - Text: {item.text}\n")
 
     return "".join(parts) if parts else "  - No content available\n"
+
+
+class ResponseFoundryMessage:
+    def __init__(self, text_messages: List, url_citation_annotations: Optional[any] = None):
+        self.text_messages = text_messages
+        self.url_citation_annotations = url_citation_annotations
+
+def create_research_summary_aifoundry(all_messages : List[ResponseFoundryMessage],time_taken, token_metrics) -> None:
+
+    if not all_messages:
+        print("No messages to summarize.")
+        return
+
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f"output_items_aifoundry_o3_deep_research.md")
+
+    content = f"# All Output Items \n - Job Status: Complete\n - Total Time: {time_taken}\n"
+    content += f"- Token Usage:\n   - prompt_tokens: {token_metrics.prompt_tokens}\n   - completion_tokens: {token_metrics.completion_tokens}\n"
+    content += f"   - total_tokens: {token_metrics.total_tokens}\n\n"
+
+
+    with open(output_file, "w", encoding="utf-8") as fp:
+        fp.write(content)
+
+        # Write individual output steps
+        for i, msg in enumerate(all_messages):
+            if i < len(all_messages) - 1:  # Not the final message
+                fp.write(f"---\n## Item Type: Message (#{i + 1}):\n")
+                for text in msg.text_messages:
+                    fp.write(f"- Text: {text.text.value}\n")
+                if msg.url_citation_annotations:
+                    for ann in msg.url_citation_annotations:
+                        if ann.url_citation:
+                            fp.write("- URL Citation:\n")
+                            if hasattr(ann.url_citation,'title'):
+                                fp.write(f"  - Title: [{ann.url_citation.title}]\n")
+                            if hasattr(ann.url_citation,'url'):
+                                fp.write(f"  - Url:({ann.url_citation.url})\n")
+                            if hasattr(ann.url_citation,'text'):
+                                fp.write(f"  - Text: [{ann.url_citation.text}]\n")
+                            if hasattr(ann.url_citation,'start_index'):
+                                fp.write(f"  - Start Index:({ann.url_citation.start_index})\n")
+                            if hasattr(ann.url_citation,'end_index'):
+                                fp.write(f"  - End Index:({ann.url_citation.end_index})\n")
+            else:
+                fp.write("---\n\n# Final Output\n")
+                text_summary = "\n\n".join([t.text.value.strip() for t in msg.text_messages])
+                fp.write(text_summary)
+
+                # Write unique URL citations, if present
+                if msg.url_citation_annotations:
+                    fp.write("\n\n## References\n")
+                    seen_urls = set()
+                    for ann in msg.url_citation_annotations:
+                        url = ann.url_citation.url
+                        title = ann.url_citation.title or url
+                        if url not in seen_urls:
+                            fp.write(f"- [{title}]({url})\n")
+                            seen_urls.add(url)
+
+    print(f"Research summary written to '{output_file}'.")

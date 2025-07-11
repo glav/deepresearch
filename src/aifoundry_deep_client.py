@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import os, time
 from typing import List, Optional
 from azure.ai.projects import AIProjectClient
@@ -6,91 +7,25 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.agents import AgentsClient
 from azure.ai.agents.models import DeepResearchTool, MessageRole, ThreadMessage
 from terminal_spinner import TerminalSpinner
+from output_processor import create_research_summary_aifoundry, ResponseFoundryMessage
+from azure.ai.agents.models import FunctionTool, ToolSet
 
-class ResponseMessage:
-    def __init__(self, text_messages: List, url_citation_annotations: Optional[any] = None):
-        self.text_messages = text_messages
-        self.url_citation_annotations = url_citation_annotations
+# Example custom function you'd add to your file
+def read_json_file(filename: str) -> str:
+    """
+    Reads a JSON file from the local filesystem and returns the contents.
 
+    :param filename: The name of the JSON file to read
+    :return: Contents of the JSON file as a string
+    """
+    # Your custom logic here
+    import json
 
-def fetch_and_print_new_agent_response(
-    thread_id: str,
-    agents_client: AgentsClient,
-    last_message_id: Optional[str] = None,
-    all_messages: Optional[list[ResponseMessage]] = None,
-) -> Optional[str]:
-    response = agents_client.messages.get_last_message_by_role(
-        thread_id=thread_id,
-        role=MessageRole.AGENT,
-    )
-    if not response or response.id == last_message_id:
-        return last_message_id  # No new content
-
-    all_messages.append(
-        ResponseMessage(
-            text_messages=response.text_messages,
-            url_citation_annotations=response.url_citation_annotations,
-        )
-    )
-
-    return response.id
-
-
-def create_research_summary(all_messages : List[ResponseMessage],time_taken, token_metrics) -> None:
-
-    if not all_messages:
-        print("No messages to summarize.")
-        return
-
-    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
-    os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f"output_items_aifoundry_o3_deep_research.md")
-
-    content = f"# All Output Items \n - Job Status: Complete\n - Total Time: {time_taken}\n"
-    content += f"- Token Usage:\n   - prompt_tokens: {token_metrics.prompt_tokens}\n   - completion_tokens: {token_metrics.completion_tokens}\n"
-    content += f"   - total_tokens: {token_metrics.total_tokens}\n\n"
-
-
-    with open(output_file, "w", encoding="utf-8") as fp:
-        fp.write(content)
-
-        # Write individual output steps
-        for i, msg in enumerate(all_messages):
-            if i < len(all_messages) - 1:  # Not the final message
-                fp.write(f"---\n## Item Type: Message (#{i + 1}):\n")
-                for text in msg.text_messages:
-                    fp.write(f"- Text: {text.text.value}\n")
-                if msg.url_citation_annotations:
-                    for ann in msg.url_citation_annotations:
-                        if ann.url_citation:
-                            fp.write("- URL Citation:\n")
-                            if hasattr(ann.url_citation,'title'):
-                                fp.write(f"  - Title: [{ann.url_citation.title}]\n")
-                            if hasattr(ann.url_citation,'url'):
-                                fp.write(f"  - Url:({ann.url_citation.url})\n")
-                            if hasattr(ann.url_citation,'text'):
-                                fp.write(f"  - Text: [{ann.url_citation.text}]\n")
-                            if hasattr(ann.url_citation,'start_index'):
-                                fp.write(f"  - Start Index:({ann.url_citation.start_index})\n")
-                            if hasattr(ann.url_citation,'end_index'):
-                                fp.write(f"  - End Index:({ann.url_citation.end_index})\n")
-            else:
-                fp.write("---\n\n# Final Output\n")
-                text_summary = "\n\n".join([t.text.value.strip() for t in msg.text_messages])
-                fp.write(text_summary)
-
-                # Write unique URL citations, if present
-                if msg.url_citation_annotations:
-                    fp.write("\n\n## References\n")
-                    seen_urls = set()
-                    for ann in msg.url_citation_annotations:
-                        url = ann.url_citation.url
-                        title = ann.url_citation.title or url
-                        if url not in seen_urls:
-                            fp.write(f"- [{title}]({url})\n")
-                            seen_urls.add(url)
-
-    print(f"Research summary written to '{output_file}'.")
+    result = {
+        "dataset_name": f"dummy_dataset_{filename}",
+        "description": "Contains mock data for testing purposes related to AI Foundry Deep Research",
+    }
+    return json.dumps(result)
 
 
 def do_aifoundry_research(system_prompt: str, user_query: str):
@@ -108,12 +43,22 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
     deep_research_tool = DeepResearchTool(
         bing_grounding_connection_id=conn_id,
         deep_research_model=os.environ["DEEP_RESEARCH_MODEL_DEPLOYMENT_NAME"],
-    )
+    )    # Create custom function tool
+    custom_functions = {read_json_file}  # Set of your custom functions
+    function_tool = FunctionTool(custom_functions)
+
+    # Create toolset and add both tools
+    toolset = ToolSet()
+    toolset.add(deep_research_tool)  # Add existing deep research tool
+    toolset.add(function_tool)       # Add custom function tool
 
     # Create Agent with the Deep Research tool and process Agent run
     with project_client:
 
         with project_client.agents as agents_client:
+
+            # Enable auto function calls
+            agents_client.enable_auto_function_calls(toolset)
 
             # Create a new agent that has the Deep Research tool attached.
             # NOTE: To add Deep Research to an existing agent, fetch it with `get_agent(agent_id)` and then,
@@ -122,8 +67,8 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
                 name="DeepResearchAgent",
                 instructions=system_prompt,
-                description="An agent that performs deep research using the Deep Research tool.",
-                tools=deep_research_tool.definitions,
+                description="An agent that performs deep research and custom data analysis.",
+                toolset=toolset,
             )
 
             # [END create_agent_with_deep_research_tool]
@@ -152,10 +97,14 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
             # Create and start the spinner
             spinner = TerminalSpinner(message="Deep research in progress")
             run_status = run.status.value.lower() if hasattr(run, 'status') else run.status.lower()
-            while run_status in ("queued", "in_progress"):
+            while run_status in ("queued", "in_progress","requires_action"):
                 time.sleep(1)
                 run = agents_client.runs.get(thread_id=thread.id, run_id=run.id)
+                spinner.update()
                 run_status = run.status.value.lower() if hasattr(run, 'status') else run.status.lower()
+
+                if run_status == "requires_action":
+                    process_required_actions(run, thread.id, agents_client, spinner)
 
                 last_message_id = fetch_and_print_new_agent_response(
                     thread_id=thread.id,
@@ -179,9 +128,87 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
             if run.status == "failed":
                 print(f"Run failed: {run.last_error}, Total duration: {total_time}")
 
-            create_research_summary(all_messages, total_time, run.usage)
+            create_research_summary_aifoundry(all_messages, total_time, run.usage)
 
             # Clean-up and delete the agent once the run is finished.
             # NOTE: Comment out this line if you plan to reuse the agent later.
             agents_client.delete_agent(agent.id)
             print("Deleted agent")
+
+
+
+def fetch_and_print_new_agent_response(
+    thread_id: str,
+    agents_client: AgentsClient,
+    last_message_id: Optional[str] = None,
+    all_messages: Optional[list[ResponseFoundryMessage]] = None,
+) -> Optional[str]:
+    response = agents_client.messages.get_last_message_by_role(
+        thread_id=thread_id,
+        role=MessageRole.AGENT,
+    )
+    if not response or response.id == last_message_id:
+        return last_message_id  # No new content
+
+    all_messages.append(
+        ResponseFoundryMessage(
+            text_messages=response.text_messages,
+            url_citation_annotations=response.url_citation_annotations,
+        )
+    )
+
+    return response.id
+
+
+def process_required_actions(run, thread_id: str, agents_client: AgentsClient, spinner: TerminalSpinner) -> int:
+    """
+    Process required tool actions for an agent run.
+
+    :param run: The current agent run that requires action
+    :param thread_id: ID of the thread being processed
+    :param agents_client: The agents client for submitting tool outputs
+    :return: Number of tool outputs processed
+    """
+    spinner.update(f"Run requires action, processing tool calls...")
+
+    # Get the required actions from the run
+    required_actions = run.required_action.submit_tool_outputs.tool_calls
+
+    tool_outputs = []
+
+    # Iterate through each tool call that needs to be processed
+    for tool_call in required_actions:
+        spinner.update(f"Processing tool call: {tool_call.id} - {tool_call.function.name}")
+
+        # Execute the function based on the tool call
+        if tool_call.function.name == "read_json_file":
+            # Parse the function arguments
+            function_args = json.loads(tool_call.function.arguments)
+            filename = function_args.get("filename", "")
+
+            # Execute the function and get the result
+            function_result = read_json_file(filename)
+
+            tool_output = {
+                "tool_call_id": tool_call.id,
+                "output": function_result
+            }
+        else:
+            # Handle other potential function calls
+            tool_output = {
+                "tool_call_id": tool_call.id,
+                "output": f"Unknown function: {tool_call.function.name}"
+            }
+        tool_outputs.append(tool_output)
+
+    # Submit the tool outputs back to continue the run
+    agents_client.runs.submit_tool_outputs(
+        thread_id=thread_id,
+        run_id=run.id,
+        tool_outputs=tool_outputs
+    )
+
+    spinner.update(f"Submitted {len(tool_outputs)} tool outputs")
+    return len(tool_outputs)
+
+
