@@ -12,6 +12,8 @@ from prompts import (
     deep_research_experiment_system_message,
     deep_research_epa_system_prompt,
     deep_research_epa_user_prompt,
+    quick_system_message,
+    quick_user_query,
 )
 
 class ResponseMessage:
@@ -53,7 +55,10 @@ def create_research_summary(all_messages : List[ResponseMessage],time_taken, tok
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"output_items_aifoundry_o3_deep_research.md")
 
-    content = f"# All Output Items \n - Job Status: Complete\n - Total Time: {time_taken}\n - Token Usage: {token_metrics}\n\n"
+    content = f"# All Output Items \n - Job Status: Complete\n - Total Time: {time_taken}\n"
+    content += f"- Token Usage:\n   - prompt_tokens: {token_metrics.prompt_tokens}\n   - completion_tokens: {token_metrics.completion_tokens}\n"
+    content += f"   - total_tokens: {token_metrics.total_tokens}\n\n"
+
 
     with open(output_file, "w", encoding="utf-8") as fp:
         fp.write(content)
@@ -126,7 +131,7 @@ def do_aifoundry_research():
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
                 name="DeepResearchAgent",
                 #instructions=deep_research_system_message,
-                instructions=deep_research_epa_system_prompt,
+                instructions=quick_system_message,
                 description="An agent that performs deep research using the Deep Research tool.",
                 tools=deep_research_tool.definitions,
             )
@@ -141,7 +146,7 @@ def do_aifoundry_research():
                 thread_id=thread.id,
                 role="user",
                 content=(
-                    deep_research_epa_user_prompt
+                    quick_user_query
                 ),
             )
             print(f"Created message, ID: {message.id}")
@@ -184,18 +189,7 @@ def do_aifoundry_research():
             if run.status == "failed":
                 print(f"Run failed: {run.last_error}, Total duration: {total_time}")
 
-            # Fetch the final message from the agent in the thread and create a research summary
-            final_message = agents_client.messages.get_last_message_by_role(
-                thread_id=thread.id, role=MessageRole.AGENT
-            )
-            if final_message:
-                all_messages.append(
-                    ResponseMessage(
-                        text_messages=final_message.text_messages,
-                        url_citation_annotations=final_message.url_citation_annotations,
-                    )
-                )
-                create_research_summary(all_messages, total_time, run.usage)
+            create_research_summary(all_messages, total_time, run.usage)
 
             # Clean-up and delete the agent once the run is finished.
             # NOTE: Comment out this line if you plan to reuse the agent later.

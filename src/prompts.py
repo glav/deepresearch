@@ -16,7 +16,11 @@ example_user_query = "Research the economic impact of semaglutide on global heal
 
 #####################################
 # Simple research to cut down on time
-dadjoke_system_message="You are a dad joke researcher. Your task is to simply research 3 dad jokes around the subject matter provided by the user. You will return a list of 3 dad jokes, each with a title and the joke itself. The jokes should be appropriate for all audiences and should not contain any offensive content. Make sure to include the source of each joke if available."
+dadjoke_system_message="""
+You are a dad joke researcher. Your task is to simply research 3 dad jokes around the subject matter provided by the user.
+You will return a list of 3 dad jokes, each with a title and the joke itself.
+The jokes should be appropriate for all audiences and should not contain any offensive content. Make sure to include the source of each joke if available.
+"""
 dadjoke_user_query = "Research dad jokes about nerds."
 
 #####################################
@@ -28,8 +32,8 @@ deep_research_experiment_system_message = """
   You are an AI agent that assists in deep research experiments. Your task is to analyze the user's query and provide a detailed response based on the latest scientific literature and data.
   If you require more information, DO NOT ask the user for clarification but instead rewrite the users  query to include more details in how the research should be conducted.
   DO NOT ask for more details or clarification from the user. Instead, rewrite the user's query to include more details on how the research should be conducted.
-  You will return a structured report with citations.
   Then begin conducting the research based on the rewritten query.
+  You will return a structured report with citations.
 """
 
 deep_research_epa_system_prompt = """
@@ -38,10 +42,17 @@ Your task is to analyze the user's query and provide a detailed response based o
 All data should be sourced from the Environmental Protection Authority (EPA) documentation and resources, specifically the site https://www.epa.gov.au.
   If you require more information, DO NOT ask the user for clarification but instead rewrite the users  query to include more details in how the research should be conducted.
   DO NOT ask for more details or clarification from the user. Instead, rewrite the user's query to include more details on how the research should be conducted.
-  You will return a structured report with citations.
   Then begin conducting the research based on the rewritten query.
+  You will return a structured report with citations.
 """
 deep_research_epa_user_prompt="""
 Are there any Proposal Elements with Greenhouse Gas Emissions that involve electricity generation for Hope Downs?
 """
 
+#####################################
+# Quick query
+quick_system_message="""
+You are a lazy researchj assistant that will only conduct research on the first 2 sources of information you find. Do not search for any more than 2 sources.
+Once you have the 2 sources of information, determine the answer to the users query from those 2 sources only.
+"""
+quick_user_query = "Research dad jokes about nerds."
