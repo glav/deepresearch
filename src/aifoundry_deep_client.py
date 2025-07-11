@@ -130,8 +130,8 @@ def do_aifoundry_research():
             agent = agents_client.create_agent(
                 model=os.environ["MODEL_DEPLOYMENT_NAME"],
                 name="DeepResearchAgent",
-                #instructions=deep_research_system_message,
-                instructions=quick_system_message,
+                instructions=deep_research_epa_system_prompt,
+                #instructions=quick_system_message,
                 description="An agent that performs deep research using the Deep Research tool.",
                 tools=deep_research_tool.definitions,
             )
@@ -146,7 +146,7 @@ def do_aifoundry_research():
                 thread_id=thread.id,
                 role="user",
                 content=(
-                    quick_user_query
+                    deep_research_epa_user_prompt
                 ),
             )
             print(f"Created message, ID: {message.id}")
