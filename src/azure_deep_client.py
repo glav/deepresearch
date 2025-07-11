@@ -1,12 +1,12 @@
 import os
 from openai import AzureOpenAI
-from input_parameters import research_input, reasoning_input, tools_input
+from input_parameters import reasoning_input, tools_input, form_research_input
 from load_env import load_env
 from time import sleep
 from output_processor import process_response_output, wait_for_response
 from models import AZURE_03_PRO, AZURE_03_MINI, AZURE_04_MINI, PROVIDER_AZURE
 
-def do_azure_research():
+def do_azure_research(system_prompt: str, user_query: str):
     print("Azure OpenAI Research Client")
     model = AZURE_03_MINI # | AZURE_03_PRO, AZURE_03_MINI, AZURE_04_MINI
 
@@ -21,7 +21,7 @@ def do_azure_research():
     try:
         response = client.responses.create(
             model=PROVIDER_AZURE[model]["deployment_name"],  # Use deployment name from PROVIDER_AZURE
-            input=research_input,
+            input=form_research_input(system_prompt, user_query),
             reasoning=reasoning_input,
             #tools=tools_input,  # 03-mini, 03-pro, 04-mini do not support tools like openAI, need to provide my own implementation
             background=True
