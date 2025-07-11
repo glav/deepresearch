@@ -16,8 +16,10 @@ def main():
     #do_basic_completion()
 
     #do_openai_research(prompts.example_system_message, prompts.example_user_query)
-    do_azure_research(prompts.example_system_message, prompts.example_user_query)
-    #do_aifoundry_research(prompts.example_system_message, prompts.example_user_query)
+    #do_azure_research(prompts.example_system_message, prompts.example_user_query)
+
+    do_aifoundry_research(prompts.localfile_system_message, prompts.localfile_user_query)
+    #do_aifoundry_research(prompts.dadjoke_system_message, prompts.dadjoke_user_query)
 
 
 if __name__ == "__main__":
