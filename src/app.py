@@ -5,7 +5,7 @@ from openai import OpenAI
 from basic_client import do_basic_completion
 from openai_deep_client import do_openai_research
 from azure_deep_client import do_azure_research
-from aifoundry_deep_client import do_aifoundry_research
+from AIFoundry.aifoundry_deep_client import do_aifoundry_research
 import prompts
 
 def main():
@@ -18,7 +18,7 @@ def main():
     #do_openai_research(prompts.example_system_message, prompts.example_user_query)
     #do_azure_research(prompts.example_system_message, prompts.example_user_query)
 
-    do_aifoundry_research(prompts.localfile_system_message, prompts.localfile_user_query)
+    do_aifoundry_research(prompts.cityquery_system_message, prompts.cityquery_user_query)
     #do_aifoundry_research(prompts.dadjoke_system_message, prompts.dadjoke_user_query)
 
 
