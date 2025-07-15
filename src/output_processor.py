@@ -188,7 +188,8 @@ def _format_general_item(item) -> str:
 
 
 class ResponseFoundryMessage:
-    def __init__(self, text_messages: List, url_citation_annotations: Optional[any] = None):
+    def __init__(self, text_messages: List, url_citation_annotations: Optional[any] = None, role: str = "agent"):
+        self.role = role
         self.text_messages = text_messages
         self.url_citation_annotations = url_citation_annotations
 

@@ -63,7 +63,7 @@ cityquery_system_message="""
 You are an AI agent that assists in deep research. Do not request clarifications from the user.
 """
 cityquery_user_query = """
-Research 1 tourist attraction in Australia but only use documents that are located or oroginated from sydney or melbourne.
+Research 1 tourist attraction in Australia but only use documents that are located or originated from sydney or melbourne.
 I am open to attractions located anywhere in Australia as long as the document comes from Sydney or Melbourne.
 I am specifically interested in attractions such as museums and art galleries"
 """
