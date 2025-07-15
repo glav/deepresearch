@@ -58,7 +58,7 @@ Once you have the 2 sources of information, determine the answer to the users qu
 quick_user_query = "Research dad jokes about nerds."
 
 #####################################
-# Quick query
+# Quick query - to be used for testing custom tool usage
 cityquery_system_message="""
 You are an AI agent that assists in deep research. Do not request clarifications from the user.
 """
