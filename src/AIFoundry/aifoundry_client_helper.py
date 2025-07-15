@@ -98,21 +98,12 @@ class AIFoundryClientHelper:
                   tool_call_id=tool_call.id,
                   output=function_result
               )
-
-            #   tool_output = {
-            #       "tool_call_id": tool_call.id,
-            #       "output": function_result
-            #   }
           else:
               # Handle other potential function calls
               tool_output = ToolOutput(
                   tool_call_id=tool_call.id,
                   output=f"Unknown function: {tool_call.function.name}"
               )
-            #   tool_output = {
-            #       "tool_call_id": tool_call.id,
-            #       "output": f"Unknown function: {tool_call.function.name}"
-            #   }
           tool_outputs.append(tool_output)
 
       # Submit the tool outputs back to continue the run
