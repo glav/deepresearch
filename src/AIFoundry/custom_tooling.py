@@ -19,3 +19,43 @@ def get_document_city_location(document_name: str) -> str:
         "city": f"{random_city}",
     }
     return json.dumps(result)
+
+
+def create_document_city_location_tool_definition():
+    """Create a FunctionDefinition for the get_document_city_location function."""
+    from azure.ai.agents.models import FunctionDefinition
+    from azure.ai.agents.models import FunctionToolDefinition
+
+    function_definition = FunctionDefinition(
+        name="get_document_city_location",
+        description="Researches a document using its name to determine which Australian city it is located in. Returns one of: Sydney, Melbourne, Perth, Hobart, Brisbane, Adelaide.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "document_name": {
+                    "type": "string",
+                    "description": "The name of the document to research"
+                }
+            },
+            "required": ["document_name"]
+        }
+    )
+
+    tool_definition = FunctionToolDefinition(
+        function=function_definition
+    )
+
+    return tool_definition
+    #return function_definition
+
+
+# def create_document_city_location_tool_definition_old():
+#     """Create a FunctionToolDefinition for the get_document_city_location function."""
+#     from azure.ai.agents.models import FunctionToolDefinition
+
+#     function_def = create_document_city_location_function_definition()
+
+#     tool_definition = FunctionToolDefinition(
+#         function=function_def
+#     )
+#     return tool_definition

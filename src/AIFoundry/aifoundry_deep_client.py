@@ -18,12 +18,13 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
     foundryClientHelper = AIFoundryClientHelper()
     foundryClientHelper.initialise_client()
 
+    # Add Deep Research and custom function tools to the toolset
+    foundryClientHelper.add_deep_research_tool()
+    #foundryClientHelper.add_document_city_function_tool()
+
     with foundryClientHelper.project_client:
 
         with foundryClientHelper.project_client.agents as agents_client:
-
-            # Enable auto function calls
-            agents_client.enable_auto_function_calls(foundryClientHelper.toolset)
 
             # Create a new agent that has the Deep Research tool attached.
             # NOTE: To add Deep Research to an existing agent, fetch it with `get_agent(agent_id)` and then,
@@ -33,7 +34,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
                 name="DeepResearchAgent",
                 instructions=system_prompt,
                 description="An agent that performs deep research and custom data analysis.",
-                toolset=foundryClientHelper.toolset,
+                tools=foundryClientHelper.tool_definitions
             )
 
             # [END create_agent_with_deep_research_tool]
