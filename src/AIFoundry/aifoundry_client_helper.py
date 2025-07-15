@@ -1,12 +1,13 @@
 import os, time
 import json
+from typing import List
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from azure.ai.agents import AgentsClient
 from azure.ai.agents.models import DeepResearchTool, MessageRole, ThreadMessage
 from terminal_spinner import TerminalSpinner
-from azure.ai.agents.models import FunctionTool, ToolSet
-from AIFoundry.custom_tooling import get_document_city_location
+from azure.ai.agents.models import FunctionTool, ToolSet, ToolDefinition
+from AIFoundry.custom_tooling import get_document_city_location, create_document_city_location_tool_definition
 
 class AIFoundryClientHelper:
     """
@@ -16,7 +17,7 @@ class AIFoundryClientHelper:
     def __init__(self):
         self.conn_id = None
         self.project_client = None
-        self.toolset = None
+        self.tool_definitions = []
 
     def initialise_client(self):
       # Initialize AI Project Client with DefaultAzureCredential
@@ -27,19 +28,30 @@ class AIFoundryClientHelper:
 
       self.conn_id = self.project_client.connections.get(name=os.environ["BING_RESOURCE_NAME"]).id
 
-      # Initialize a Deep Research tool with Bing Connection ID and Deep Research model deployment name
-      deep_research_tool = DeepResearchTool(
-          bing_grounding_connection_id=self.conn_id,
-          deep_research_model=os.environ["DEEP_RESEARCH_MODEL_DEPLOYMENT_NAME"],
-      )    # Create custom function tool
-      custom_functions = {get_document_city_location}  # Set of your custom functions
-      function_tool = FunctionTool(custom_functions)
 
-      # Create toolset and add both tools
-      self.toolset = ToolSet()
-      self.toolset.add(deep_research_tool)  # Add existing deep research tool
-      self.toolset.add(function_tool)       # Add custom function tool
+    def add_deep_research_tool(self):
+        """
+        Configure the toolset with Deep Research tool.
+        """
 
+        # Add the deep research tool definitions to our list
+        # Initialize a Deep Research tool with Bing Connection ID and Deep Research model deployment name
+        deep_research_tool = DeepResearchTool(
+            bing_grounding_connection_id=self.conn_id,
+            deep_research_model=os.environ["DEEP_RESEARCH_MODEL_DEPLOYMENT_NAME"],
+        )    # Create custom function tool
+
+        self.tool_definitions.extend(deep_research_tool.definitions)
+
+
+    def add_document_city_function_tool(self):
+        """
+        Configure the toolset with a custom tool
+        """
+
+        # Add the custom function tool definition to our list
+        tool_def = create_document_city_location_tool_definition()
+        self.tool_definitions.append(tool_def)
 
 
     def process_required_actions(run, thread_id: str, agents_client: AgentsClient, spinner: TerminalSpinner) -> int:
