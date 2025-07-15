@@ -8,6 +8,7 @@ from azure.ai.agents.models import DeepResearchTool, MessageRole, ThreadMessage
 from terminal_spinner import TerminalSpinner
 from azure.ai.agents.models import FunctionTool, ToolSet, ToolDefinition
 from AIFoundry.custom_tooling import get_document_city_location, create_document_city_location_tool_definition
+from azure.ai.agents.models import ToolOutput
 
 class AIFoundryClientHelper:
     """
@@ -18,6 +19,7 @@ class AIFoundryClientHelper:
         self.conn_id = None
         self.project_client = None
         self.tool_definitions = []
+        self.toolset = ToolSet()
 
     def initialise_client(self):
       # Initialize AI Project Client with DefaultAzureCredential
@@ -42,6 +44,8 @@ class AIFoundryClientHelper:
         )    # Create custom function tool
 
         self.tool_definitions.extend(deep_research_tool.definitions)
+        # NOTE: Does this need to be added to the toolset like the custom function tool?
+        #self.toolset.add(deep_research_tool)
 
 
     def add_document_city_function_tool(self):
@@ -53,8 +57,15 @@ class AIFoundryClientHelper:
         tool_def = create_document_city_location_tool_definition()
         self.tool_definitions.append(tool_def)
 
+        # Since we are adding a custom tool, we need to setup a toolset to enable
+        # automatic function calls
+        # Create toolset for automatic function execution
+        functions = FunctionTool([get_document_city_location])
+        self.toolset.add(functions)
 
-    def process_required_actions(run, thread_id: str, agents_client: AgentsClient, spinner: TerminalSpinner) -> int:
+
+
+    def process_required_actions(self, run, thread_id: str, agents_client: AgentsClient, spinner: TerminalSpinner) -> int:
       """
       Process required tool actions for an agent run.
 
@@ -83,16 +94,25 @@ class AIFoundryClientHelper:
               # Execute the function and get the result
               function_result = get_document_city_location(document_name)
 
-              tool_output = {
-                  "tool_call_id": tool_call.id,
-                  "output": function_result
-              }
+              tool_output = ToolOutput(
+                  tool_call_id=tool_call.id,
+                  output=function_result
+              )
+
+            #   tool_output = {
+            #       "tool_call_id": tool_call.id,
+            #       "output": function_result
+            #   }
           else:
               # Handle other potential function calls
-              tool_output = {
-                  "tool_call_id": tool_call.id,
-                  "output": f"Unknown function: {tool_call.function.name}"
-              }
+              tool_output = ToolOutput(
+                  tool_call_id=tool_call.id,
+                  output=f"Unknown function: {tool_call.function.name}"
+              )
+            #   tool_output = {
+            #       "tool_call_id": tool_call.id,
+            #       "output": f"Unknown function: {tool_call.function.name}"
+            #   }
           tool_outputs.append(tool_output)
 
       # Submit the tool outputs back to continue the run
