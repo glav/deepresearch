@@ -41,9 +41,11 @@ azure_openai_tools_input = [
     {  # ADD MCP TOOL SUPPORT
         # Update to the location of *your* MCP server
         "type": "mcp",
+        "name": "local_file_lookup",
+        "description": "Access and search through local files and documents on the system. Use this when you need to find, read, or analyze files that are stored locally.",
         "server_label": "local_file_lookup",
         "server_url": "https://<your_mcp_server>/sse/",
-        "require_approval": "never"
+        "require_approval": "never",
     }
 ]
 
