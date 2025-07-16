@@ -13,27 +13,41 @@ from typing import List, Optional
 
 def wait_for_response(client, response, interval: int = 2) -> any:
     """
-    Wait for the response to complete by polling its status.
+    Wait for the response to complete by polling its status and handling tool execution.
 
     Args:
         response: The OpenAI response object to check
         interval: Time in seconds to wait between status checks
 
     Returns:
-        None - The function will block until the response is complete
+        Tuple of (response, total_time) - The function will block until the response is complete
     """
     start_time = datetime.now()
 
     last_status = ''
     spinner = TerminalSpinner(message="Research in progress")
-    while response.status in {"queued", "in_progress"}:
+
+    while response.status in {"queued", "in_progress", "requires_action"}:
         if response.status != last_status:
             spinner.update(f"Research in progress - Status: {response.status}")
             last_status = response.status
         else:
             spinner.update()
-        sleep(interval)
-        response = client.responses.retrieve(response.id)
+
+        # Check if tool execution is required (for external tool calls)
+        if response.status == "requires_action":
+            spinner.update("Tool execution required - Processing...")
+            response = _handle_tool_execution(client, response)
+            spinner.update("Tool execution completed - Continuing research...")
+        else:
+            # Check for MCP/function tools in output even when status is "in_progress"
+            if hasattr(response, 'output') and response.output:
+                tool_calls_found = _check_for_tool_calls_in_output(response.output)
+                if tool_calls_found:
+                    spinner.update("Tool calls detected in output stream...")
+
+            sleep(interval)
+            response = client.responses.retrieve(response.id)
 
     end_time = datetime.now()
     total_time = end_time - start_time
@@ -214,7 +228,7 @@ def create_research_summary_aifoundry(all_messages : List[ResponseFoundryMessage
         # Write individual output steps
         for i, msg in enumerate(all_messages):
             if i < len(all_messages) - 1:  # Not the final message
-                fp.write(f"---\n## Item Type: Message (#{i + 1}):\n")
+                fp.write(f"---\n## <{msg.role}>: Message {i + 1}:\n")
                 for text in msg.text_messages:
                     fp.write(f"- Text: {text.text.value}\n")
                 if msg.url_citation_annotations:
@@ -248,3 +262,195 @@ def create_research_summary_aifoundry(all_messages : List[ResponseFoundryMessage
                             seen_urls.add(url)
 
     print(f"Research summary written to '{output_file}'.")
+
+
+################################################
+### These methods below for tool handling
+### are specific to Azure OpenAI use of tools
+### which seem non standard
+################################################
+def _handle_tool_execution(client, response):
+    """
+    Handle tool execution when the response requires action.
+
+    Args:
+        client: The OpenAI client instance
+        response: The response object that requires action
+
+    Returns:
+        Updated response object after submitting tool outputs
+    """
+    if not hasattr(response, 'required_action') or not response.required_action:
+        print("Warning: Response status is 'requires_action' but no required_action found")
+        return response
+
+    required_action = response.required_action
+
+    # Handle submit_tool_outputs type
+    if hasattr(required_action, 'type') and required_action.type == "submit_tool_outputs":
+        tool_calls = required_action.submit_tool_outputs.tool_calls
+
+        print(f"Processing {len(tool_calls)} tool call(s)...")
+
+        tool_outputs = []
+        for tool_call in tool_calls:
+            print(f"Executing tool: {tool_call.function.name}")
+
+            # Execute the tool call
+            tool_output = _execute_tool_call(tool_call)
+
+            tool_outputs.append({
+                "tool_call_id": tool_call.id,
+                "output": tool_output
+            })
+
+        # Submit the tool outputs back to the API
+        response = client.responses.submit_tool_outputs(
+            response_id=response.id,
+            tool_outputs=tool_outputs
+        )
+
+        print("Tool outputs submitted successfully")
+
+    return response
+
+
+def _execute_tool_call(tool_call):
+    """
+    Execute a specific tool call and return the result.
+
+    Args:
+        tool_call: The tool call object containing function name and arguments
+
+    Returns:
+        String result of the tool execution
+    """
+    function_name = tool_call.function.name
+    arguments = tool_call.function.arguments
+
+    print(f"Tool call details:")
+    print(f"  Function: {function_name}")
+    print(f"  Arguments: {arguments}")
+
+    # Handle different tool types
+    if function_name == "web_search_preview_2025_03_11":
+        return _execute_web_search(arguments)
+    elif function_name == "glavs_custom_search":
+        return _execute_custom_search(arguments)
+    else:
+        # For unknown tools, return a placeholder response
+        return f"Tool '{function_name}' executed with arguments: {arguments}"
+
+
+def _execute_web_search(arguments):
+    """
+    Execute a web search tool call.
+
+    Args:
+        arguments: The arguments for the web search (usually a JSON string)
+
+    Returns:
+        String result of the web search
+    """
+    import json
+
+    try:
+        # Parse arguments if they're in JSON string format
+        if isinstance(arguments, str):
+            search_params = json.loads(arguments)
+        else:
+            search_params = arguments
+
+        query = search_params.get('query', 'No query provided')
+
+        # Here you would implement actual web search functionality
+        # For now, return a placeholder result
+        search_result = {
+            "query": query,
+            "results": [
+                {
+                    "title": f"Sample search result for: {query}",
+                    "url": "https://example.com/search-result",
+                    "snippet": f"This is a sample search result for the query '{query}'. In a real implementation, this would contain actual web search results."
+                }
+            ]
+        }
+
+        return json.dumps(search_result, indent=2)
+
+    except json.JSONDecodeError as e:
+        return f"Error parsing search arguments: {e}"
+    except Exception as e:
+        return f"Error executing web search: {e}"
+
+def _execute_custom_search(arguments):
+    """
+    Execute a custom search tool call.
+
+    Args:
+        arguments: The arguments for the custom search (usually a JSON string)
+
+    Returns:
+        String result of the custom search
+    """
+    import json
+
+    try:
+        # Parse arguments if they're in JSON string format
+        if isinstance(arguments, str):
+            search_params = json.loads(arguments)
+        else:
+            search_params = arguments
+
+        search_term = search_params.get('search_term', 'No search term provided')
+
+        print(f"Executing custom search for: {search_term}")
+
+        # Here you would implement your actual custom search functionality
+        # This could call your preferred search API (Google, Bing, etc.)
+        search_result = {
+            "search_term": search_term,
+            "status": "success",
+            "results": [
+                {
+                    "title": f"Custom search result for: {search_term}",
+                    "url": "https://example.com/custom-search-result",
+                    "snippet": f"This is a custom search result for '{search_term}'. Replace this with actual search API integration.",
+                    "relevance_score": 0.95
+                }
+            ],
+            "total_results": 1
+        }
+
+        return json.dumps(search_result, indent=2)
+
+    except json.JSONDecodeError as e:
+        return f"Error parsing custom search arguments: {e}"
+    except Exception as e:
+        return f"Error executing custom search: {e}"
+
+def _check_for_tool_calls_in_output(output):
+    """
+    Check if there are tool calls in the response output stream.
+
+    Args:
+        output: The response output items
+
+    Returns:
+        Boolean indicating if tool calls were found
+    """
+    if not output:
+        return False
+
+    tool_call_types = {"mcp_tool_call", "function_call", "tool_call","mcp_list_tools"}
+
+    for item in output:
+        if hasattr(item, 'type') and item.type in tool_call_types:
+            print(f"Found tool call in output: {item.type}")
+            if hasattr(item, 'function') and hasattr(item.function, 'name'):
+                print(f"  Tool name: {item.function.name}")
+            if hasattr(item, 'server_label'):
+                print(f"  MCP Tool name: {item.server_label}")
+            return True
+
+    return False

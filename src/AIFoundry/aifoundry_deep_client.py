@@ -34,7 +34,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
                 instructions=system_prompt,
                 description="An agent that performs deep research and custom data analysis.",
                 tools=foundryClientHelper.tool_definitions,
-                toolset=foundryClientHelper.toolset
+                toolset=foundryClientHelper.toolset  # This needs to be set if using a custom tool like get_document_city_location
             )
 
             # [END create_agent_with_deep_research_tool]
@@ -56,6 +56,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
             all_messages = list()
 
             # Enable automatic function calls for custom tools
+            # If we provide a new tool definition in tools field and toolset, we need to add it in here so it can be called.
             if foundryClientHelper.toolset and foundryClientHelper.toolset.definitions and len(foundryClientHelper.toolset.definitions) > 0:
                 agents_client.enable_auto_function_calls(foundryClientHelper.toolset)
 
@@ -77,7 +78,6 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
             # Fetch all messages after completion in chronological order
             messages = agents_client.messages.list(thread_id=thread.id, order=ListSortOrder.ASCENDING)
             for msg in messages:
-                print(f"Message ID: {msg.id}, Role: {msg.role}")
                 all_messages.append(
                     ResponseFoundryMessage(
                         text_messages=msg.text_messages,
