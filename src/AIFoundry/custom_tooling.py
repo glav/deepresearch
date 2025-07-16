@@ -46,16 +46,3 @@ def create_document_city_location_tool_definition():
     )
 
     return tool_definition
-    #return function_definition
-
-
-# def create_document_city_location_tool_definition_old():
-#     """Create a FunctionToolDefinition for the get_document_city_location function."""
-#     from azure.ai.agents.models import FunctionToolDefinition
-
-#     function_def = create_document_city_location_function_definition()
-
-#     tool_definition = FunctionToolDefinition(
-#         function=function_def
-#     )
-#     return tool_definition

@@ -62,6 +62,7 @@ quick_user_query = "Research dad jokes about nerds."
 cityquery_system_message="""
 You are an AI agent that assists in deep research. Do not request clarifications from the user. You must use at least the deep research tool to answer the query however you
 can use more tools if available.
+The final tool you MUST use is the deep research tool. If you execute any custom tools, make sure you use the tool output to feedback into the deep research tool.
 """
 cityquery_user_query = """
 Research tourist attractions in Australia but only use documents that are located or originated from sydney or melbourne.
@@ -69,5 +70,13 @@ I am open to attractions located anywhere in Australia as long as the document c
 I am specifically interested in attractions such as museums and art galleries"
 """
 
+test_system_prompt="""
+You are an AI agent that assists in deep research. Do not request clarifications from the user.
+Use any tooling available to you to answer the query.
+"""
+
+test_user_query = """
+Can you research the content of file named 'test.log' on my local machine?
+"""
 
 

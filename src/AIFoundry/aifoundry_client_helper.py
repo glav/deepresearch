@@ -19,7 +19,7 @@ class AIFoundryClientHelper:
         self.conn_id = None
         self.project_client = None
         self.tool_definitions = []
-        self.toolset = ToolSet()
+        self.toolset = None
 
     def initialise_client(self):
       # Initialize AI Project Client with DefaultAzureCredential
@@ -41,10 +41,14 @@ class AIFoundryClientHelper:
         deep_research_tool = DeepResearchTool(
             bing_grounding_connection_id=self.conn_id,
             deep_research_model=os.environ["DEEP_RESEARCH_MODEL_DEPLOYMENT_NAME"],
-        )    # Create custom function tool
+        )
 
         self.tool_definitions.extend(deep_research_tool.definitions)
-        # NOTE: Does this need to be added to the toolset like the custom function tool?
+
+        # Add the deep research tool to the toolset
+        # Note: Deep research tools are typically handled automatically by Azure,
+        # but we can add them to the toolset for consistency
+        # NOTE: THIS CAUSES THE RUN TO FAIL
         #self.toolset.add(deep_research_tool)
 
 
@@ -61,6 +65,7 @@ class AIFoundryClientHelper:
         # automatic function calls
         # Create toolset for automatic function execution
         functions = FunctionTool([get_document_city_location])
+        self.toolset = ToolSet()
         self.toolset.add(functions)
 
 
