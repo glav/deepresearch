@@ -20,7 +20,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
 
     # Add Deep Research and custom function tools to the toolset
     foundryClientHelper.add_deep_research_tool()
-    foundryClientHelper.add_document_city_function_tool()
+    #foundryClientHelper.add_document_city_function_tool()
 
     with foundryClientHelper.project_client:
 
@@ -34,7 +34,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
                 instructions=system_prompt,
                 description="An agent that performs deep research and custom data analysis.",
                 tools=foundryClientHelper.tool_definitions,
-                toolset=foundryClientHelper.toolset  # This needs to be set if using a custom tool like get_document_city_location
+                toolset=foundryClientHelper.toolset,  # This needs to be set if using a custom tool like get_document_city_location however this breaks deep research
             )
 
             # [END create_agent_with_deep_research_tool]
@@ -57,6 +57,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
 
             # Enable automatic function calls for custom tools
             # If we provide a new tool definition in tools field and toolset, we need to add it in here so it can be called.
+            foundryClientHelper.add_document_city_function_tool()
             if foundryClientHelper.toolset and foundryClientHelper.toolset.definitions and len(foundryClientHelper.toolset.definitions) > 0:
                 agents_client.enable_auto_function_calls(foundryClientHelper.toolset)
 
@@ -66,6 +67,8 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
             spinner = TerminalSpinner(message="Deep research in progress")
 
             # Use create_and_process for automatic tool execution
+            #run = agents_client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
+
             run = agents_client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
 
             end_time = datetime.now()

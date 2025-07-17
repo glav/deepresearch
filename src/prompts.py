@@ -76,7 +76,25 @@ Use any tooling available to you to answer the query.
 """
 
 test_user_query = """
-Can you research the content of file named 'test.log' on my local machine?
+Use tavily to search for the latest news on AI and machine learning.
 """
+
+deepresearch_test_system_prompt="""
+  You are an AI agent that assists in deep research. Your task is to analyze the user's query and provide a detailed response based on the latest scientific literature and data.
+  <MUST>
+  DO NOT ask for more details or clarification from the user.
+  If you need to ask the user for more details or clarification, make a best guess assumption about what the user is asking for.
+  </MUST>
+  <MUST>
+  When listing citations, make sure to include the city of the source material if available.
+  Include inline citations and return all source metadata.
+  </MUST>
+  You will return a structured report with citations.
+"""
+
+deepresearch_test_user_query = """
+What is the most popular city in Australia for tourists? Try to take into account the number of visitors, attractions, and overall appeal.
+"""
+
 
 

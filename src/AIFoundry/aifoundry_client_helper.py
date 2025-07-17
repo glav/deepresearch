@@ -49,7 +49,9 @@ class AIFoundryClientHelper:
         # Note: Deep research tools are typically handled automatically by Azure,
         # but we can add them to the toolset for consistency
         # NOTE: THIS CAUSES THE RUN TO FAIL
-        #self.toolset.add(deep_research_tool)
+        # if self.toolset is None:
+        #     self.toolset = ToolSet()
+        # self.toolset.add(deep_research_tool)
 
 
     def add_document_city_function_tool(self):
@@ -65,7 +67,8 @@ class AIFoundryClientHelper:
         # automatic function calls
         # Create toolset for automatic function execution
         functions = FunctionTool([get_document_city_location])
-        self.toolset = ToolSet()
+        if self.toolset is None:
+            self.toolset = ToolSet()
         self.toolset.add(functions)
 
 
