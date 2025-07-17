@@ -436,7 +436,7 @@ def _check_for_tool_calls_in_output(client, response, spinner):
     if not output:
         return None
 
-    tool_call_types = {"mcp_tool_call", "function_call", "tool_call","mcp_list_tools"}
+    tool_call_types = {"mcp_tool_call", "function_call", "tool_call"}
     tool_calls_found = []
 
     fnd = False
