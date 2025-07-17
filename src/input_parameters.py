@@ -22,31 +22,32 @@ openai_tools_input=[
 azure_openai_tools_input = [
     {
         "type": "function",
-        "name": "glavs_custom_search",
+        "name": "get_document_city_location",
         "function": {
-            "name": "glavs_custom_search",
-            "description": "Search for information on the web using a custom search engine.",
+            "name": "get_document_city_location",
+            "description": "Geo locates a document by its name to determine which Australian city it is located in. Returns one of: Sydney, Melbourne, Perth, Hobart, Brisbane, Adelaide.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "search_term": {
+                    "document_name": {
                         "type": "string",
-                        "description": "Term or query to search for"
+                        "description": "Document name to search for"
                     }
                 },
-                "required": ["search_term"]
+                "required": ["document_name"]
             }
         }
-    },
-    {  # ADD MCP TOOL SUPPORT
-        # Update to the location of *your* MCP server
-        "type": "mcp",
-        "name": "local_file_lookup",
-        "description": "Access and search through local files and documents on the system. Use this when you need to find, read, or analyze files that are stored locally.",
-        "server_label": "local_file_lookup",
-        "server_url": "https://<your_mcp_server>/sse/",
-        "require_approval": "never",
     }
+    # ,
+    # {  # ADD MCP TOOL SUPPORT
+    #     # Update to the location of *your* MCP server
+    #     "type": "mcp",
+    #     "name": "local_file_lookup",
+    #     "description": "Access and search through local files and documents on the system. Use this when you need to find, read, or analyze files that are stored locally.",
+    #     "server_label": "local_file_lookup",
+    #     "server_url": "https://localhost:8080/mcp",
+    #     "require_approval": "never",
+    # }
 ]
 
 
