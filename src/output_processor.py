@@ -10,6 +10,7 @@ from time import sleep
 from datetime import datetime
 from terminal_spinner import TerminalSpinner
 from typing import List, Optional
+from AIFoundry.custom_tooling import get_document_city_location
 
 def wait_for_response(client, response, interval: int = 2) -> any:
     """
@@ -42,12 +43,16 @@ def wait_for_response(client, response, interval: int = 2) -> any:
         else:
             # Check for MCP/function tools in output even when status is "in_progress"
             if hasattr(response, 'output') and response.output:
-                tool_calls_found = _check_for_tool_calls_in_output(response.output)
-                if tool_calls_found:
-                    spinner.update("Tool calls detected in output stream...")
+                updated_response = _check_for_tool_calls_in_output(client, response, spinner)
+                if updated_response:
+                    response = updated_response
+                    spinner.update("Response updated after tool execution - Continuing research...")
 
             sleep(interval)
             response = client.responses.retrieve(response.id)
+            if hasattr(response, 'output') and response.output:
+                updated_response = _check_for_tool_calls_in_output(client, response, spinner)
+
 
     end_time = datetime.now()
     total_time = end_time - start_time
@@ -335,8 +340,8 @@ def _execute_tool_call(tool_call):
     # Handle different tool types
     if function_name == "web_search_preview_2025_03_11":
         return _execute_web_search(arguments)
-    elif function_name == "glavs_custom_search":
-        return _execute_custom_search(arguments)
+    elif function_name == "get_document_city_location":
+        return _execute_get_document_city_location(arguments)
     else:
         # For unknown tools, return a placeholder response
         return f"Tool '{function_name}' executed with arguments: {arguments}"
@@ -383,7 +388,7 @@ def _execute_web_search(arguments):
     except Exception as e:
         return f"Error executing web search: {e}"
 
-def _execute_custom_search(arguments):
+def _execute_get_document_city_location(arguments):
     """
     Execute a custom search tool call.
 
@@ -402,25 +407,11 @@ def _execute_custom_search(arguments):
         else:
             search_params = arguments
 
-        search_term = search_params.get('search_term', 'No search term provided')
+        search_term = search_params.get('document_name', 'No document name term provided')
 
-        print(f"Executing custom search for: {search_term}")
+        print(f"Executing get_document_city_location for: {search_term}")
 
-        # Here you would implement your actual custom search functionality
-        # This could call your preferred search API (Google, Bing, etc.)
-        search_result = {
-            "search_term": search_term,
-            "status": "success",
-            "results": [
-                {
-                    "title": f"Custom search result for: {search_term}",
-                    "url": "https://example.com/custom-search-result",
-                    "snippet": f"This is a custom search result for '{search_term}'. Replace this with actual search API integration.",
-                    "relevance_score": 0.95
-                }
-            ],
-            "total_results": 1
-        }
+        search_result = get_document_city_location(search_term)
 
         return json.dumps(search_result, indent=2)
 
@@ -429,28 +420,89 @@ def _execute_custom_search(arguments):
     except Exception as e:
         return f"Error executing custom search: {e}"
 
-def _check_for_tool_calls_in_output(output):
+def _check_for_tool_calls_in_output(client, response, spinner):
     """
-    Check if there are tool calls in the response output stream.
+    Check if there are tool calls in the response output stream and execute them.
 
     Args:
-        output: The response output items
+        client: The client instance for submitting tool outputs
+        response: The response object containing output items
+        spinner: The terminal spinner for status updates
 
     Returns:
-        Boolean indicating if tool calls were found
+        Updated response object if tool calls were executed, otherwise None
     """
+    output = response.output if hasattr(response, 'output') else None
     if not output:
-        return False
+        return None
 
     tool_call_types = {"mcp_tool_call", "function_call", "tool_call","mcp_list_tools"}
+    tool_calls_found = []
 
+    fnd = False
     for item in output:
         if hasattr(item, 'type') and item.type in tool_call_types:
-            print(f"Found tool call in output: {item.type}")
-            if hasattr(item, 'function') and hasattr(item.function, 'name'):
-                print(f"  Tool name: {item.function.name}")
-            if hasattr(item, 'server_label'):
-                print(f"  MCP Tool name: {item.server_label}")
-            return True
+            spinner.update(f"Found tool call in output: {item.type}")
 
-    return False
+            # For function_call items, execute them
+            if item.type == "function_call":
+                if hasattr(item, 'name'):
+                    spinner.update(f"  Executing tool: {item.name}")
+
+                    # Create a tool_call-like object for execution
+                    # Create a function object with proper attributes
+                    function_obj = type('Function', (), {
+                        'name': item.name,
+                        'arguments': item.arguments
+                    })()
+
+                    tool_call_obj = type('ToolCall', (), {
+                        'id': getattr(item, 'call_id', f"call_{item.name}"),
+                        'function': function_obj
+                    })()
+
+                    tool_calls_found.append(tool_call_obj)
+
+            # For other tool types, just log for now
+            elif hasattr(item, 'function') and hasattr(item.function, 'name'):
+                spinner.update(f"  Tool name: {item.function.name}")
+                fnd = True
+            elif hasattr(item, 'server_label'):
+                spinner.update(f"  MCP Tool name: {item.server_label}")
+                fnd = True
+    return fnd
+
+    ####
+    # Code below does not work for Azure models
+    ####
+    # If we found function calls to execute, process them
+    # if tool_calls_found:
+    #     spinner.update(f"Processing {len(tool_calls_found)} tool call(s) from output stream...")
+
+    #     tool_outputs = []
+    #     for tool_call in tool_calls_found:
+    #         spinner.update(f"Executing tool: {tool_call.function.name}")
+
+    #         # Execute the tool call
+    #         tool_output = _execute_tool_call(tool_call)
+
+    #         tool_outputs.append({
+    #             "tool_call_id": tool_call.id,
+    #             "output": tool_output
+    #         })
+
+    #     # Submit the tool outputs back to the API
+    #     try:
+    #         updated_response = client.responses.submit_tool_outputs(
+    #             response_id=response.id,
+    #             tool_outputs=tool_outputs
+    #         )
+
+    #         spinner.update("Tool outputs submitted successfully from output stream")
+    #         return updated_response
+
+    #     except Exception as e:
+    #         spinner.update(f"Error submitting tool outputs: {e}")
+    #         return None
+
+    return None
