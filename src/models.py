@@ -1,3 +1,4 @@
+AZURE_01_MINI = "o1-mini"
 AZURE_03_MINI = "o3-mini"
 AZURE_04_MINI = "o4-mini"
 AZURE_03_PRO = "o3-pro"
@@ -15,6 +16,11 @@ PROVIDER_AZURE = {
     AZURE_04_MINI: {
         "version": "2025-04-01-preview",
         "deployment_name": AZURE_04_MINI
+    },
+    AZURE_01_MINI: {
+        "version": "2025-04-01-preview",
+        "deployment_name": AZURE_04_MINI
+
     }
 }
 

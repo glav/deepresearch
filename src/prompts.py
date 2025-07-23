@@ -52,7 +52,49 @@ Are there any Proposal Elements with Greenhouse Gas Emissions that involve elect
 #####################################
 # Quick query
 quick_system_message="""
-You are a lazy researchj assistant that will only conduct research on the first 2 sources of information you find. Do not search for any more than 2 sources.
+You are a lazy research assistant that will only conduct research on the first 2 sources of information you find. Do not search for any more than 2 sources.
 Once you have the 2 sources of information, determine the answer to the users query from those 2 sources only.
 """
 quick_user_query = "Research dad jokes about nerds."
+
+#####################################
+# Quick query - to be used for testing custom tool usage
+cityquery_system_message="""
+You are an AI agent that assists in deep research. Do not request clarifications from the user. You must use at least the deep research tool to answer the query however you
+can use more tools if available.
+The final tool you MUST use is the deep research tool. If you execute any custom tools, make sure you use the tool output to feedback into the deep research tool.
+"""
+cityquery_user_query = """
+Research tourist attractions in Australia but only use documents that are located or originated from sydney or melbourne.
+I am open to attractions located anywhere in Australia as long as the document comes from Sydney or Melbourne.
+I am specifically interested in attractions such as museums and art galleries"
+"""
+
+test_system_prompt="""
+You are an AI agent that assists in deep research. Do not request clarifications from the user.
+Use any tooling available to you to answer the query.
+"""
+
+test_user_query = """
+Use tavily to search for the latest news on AI and machine learning.
+"""
+
+deepresearch_test_system_prompt="""
+  You are an AI agent that assists in deep research. Your task is to analyze the user's query and provide a detailed response based on the latest scientific literature and data.
+  <MUST>
+  DO NOT ask for more details or clarification from the user.
+  If you need to ask the user for more details or clarification, make a best guess assumption about what the user is asking for.
+  </MUST>
+  <MUST>
+  When listing citations, make sure to include the city of the source material if available.
+  Include inline citations and return all source metadata.
+  </MUST>
+  You will return a structured report with citations.
+"""
+
+deepresearch_test_user_query = """
+What is the most popular city in Australia for tourists? Try to take into account the number of visitors, attractions, and overall appeal.
+"""
+
+
+
