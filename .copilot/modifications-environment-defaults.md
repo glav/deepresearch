@@ -25,7 +25,7 @@ These changes allow users to:
 
 For example, instead of:
 ```bash
-python src/azure_evaluator.py --input data/sample_dataset.json --metrics relevance,coherence,fluency --model-endpoint "https://aoai-evaltest.openai.azure.com/" --model-api-key "edeb0c60252941f3806e0b9667afb830" --model-deployment "gpt-4o-mini"
+python src/azure_evaluator.py --input data/sample_dataset.json --metrics relevance,coherence,fluency --model-endpoint "https://aoai-evaltest.openai.azure.com/" --model-api-key "{key}" --model-deployment "gpt-4o-mini"
 ```
 
 Users can now simply run:

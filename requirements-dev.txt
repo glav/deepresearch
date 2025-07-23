@@ -1,3 +1,5 @@
 python-dotenv
 openai
 azureopenai
+azure-identity
+azure-ai-projects  # This package requires a --pre to get the latest that works with this solution. Versions are pinned appropriately in requirements.txt
