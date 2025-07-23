@@ -17,10 +17,10 @@ def main():
 
     #do_openai_research(prompts.example_system_message, prompts.example_user_query)
     #do_azure_research(prompts.cityquery_system_message, prompts.cityquery_user_query)
-    #do_azure_research(prompts.test_system_prompt, prompts.test_user_query)
+    do_azure_research(prompts.example_system_message, prompts.example_user_query)
 
     #do_aifoundry_research(prompts.cityquery_system_message, prompts.cityquery_user_query)
-    do_aifoundry_research(prompts.deepresearch_test_system_prompt, prompts.deepresearch_test_user_query)
+    #do_aifoundry_research(prompts.deepresearch_test_system_prompt, prompts.deepresearch_test_user_query)
 
 
 if __name__ == "__main__":

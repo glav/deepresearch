@@ -20,7 +20,7 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
 
     # Add Deep Research and custom function tools to the toolset
     foundryClientHelper.add_deep_research_tool()
-    #foundryClientHelper.add_document_city_function_tool()
+    #foundryClientHelper.add_document_city_function_tool()  # Adding this breaks the deep research tool
 
     with foundryClientHelper.project_client:
 
@@ -67,8 +67,6 @@ def do_aifoundry_research(system_prompt: str, user_query: str):
             spinner = TerminalSpinner(message="Deep research in progress")
 
             # Use create_and_process for automatic tool execution
-            #run = agents_client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
-
             run = agents_client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
 
             end_time = datetime.now()
