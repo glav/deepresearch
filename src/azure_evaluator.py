@@ -254,7 +254,8 @@ def run_evaluation(dataset: List[Dict[str, str]], evaluators: Dict[str, Any], ve
         jsonl_data.append({
             "query": item["query"],
             "response": item["generated_text"],
-            "ground_truth": item["reference_text"]
+            "ground_truth": item["reference_text"],
+            "line_number": item.get("line_number")
         })
 
     # Create a temporary JSONL file for evaluate function
@@ -275,7 +276,7 @@ def run_evaluation(dataset: List[Dict[str, str]], evaluators: Dict[str, Any], ve
             # Fluency only needs response
             evaluator_config[evaluator_name] = {
                 "column_mapping": {
-                    "response": "${data.response}"
+                    "response": "${data.response}",
                 }
             }
         elif evaluator_name in ["bleu", "rouge", "f1", "gleu", "meteor", "similarity"]:
@@ -295,6 +296,7 @@ def run_evaluation(dataset: List[Dict[str, str]], evaluators: Dict[str, Any], ve
                     "ground_truth": "${data.ground_truth}"
                 }
             }
+        evaluator_config[evaluator_name]["column_mapping"]["line_number"] = "${data.line_number}"
 
     try:
         # Run the evaluation
@@ -321,7 +323,7 @@ def run_evaluation(dataset: List[Dict[str, str]], evaluators: Dict[str, Any], ve
             os.remove(temp_jsonl_path)
         raise
 
-def generate_report(results: Dict[str, Any], output_path: Optional[str] = None) -> str:
+def generate_report(results: Dict[str, Any], metrics: list[str], output_path: Optional[str] = None) -> str:
     """
     Generate a report from the evaluation results.
 
@@ -359,22 +361,31 @@ def generate_report(results: Dict[str, Any], output_path: Optional[str] = None) 
         f.write(f"*Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
 
         f.write("## Summary\n\n")
-        f.write("| Metric | Score | Binary Result |\n")
-        f.write("|--------|-------|---------------|\n")
+        f.write("|Line Number| Metric | Value |\n")
+        f.write("|--------|--------|-------|\n")
 
         # Extract and write the aggregate metrics
 
-        for metric_name, metric_value in results['metrics'].items():
-            binary_result = "N/A"
-            if f"{metric_name}_binary_aggregate" in results['metrics']:
-                binary_result = "Pass" if results['metrics'][f"{metric_name}_binary_aggregate"] else "Fail"
+        for row in results['rows']:
+            line_number = row.get('inputs.line_number', 'None')
 
-            if isinstance(metric_value, (int, float)):
-                score = f"{metric_value:.4f}"
-            else:
-                score = str(metric_value)
+            for metric_category in metrics:
+                binary_result = "N/A"
 
-            f.write(f"| {metric_name} | {score} | {binary_result} |\n")
+                for item, value in row.items():
+                    metric_name = None
+                    metric_valeu = "N/A"
+
+                    if item.startswith(f"outputs.{metric_category}.") or item.endswith("_result"):
+                        metric_name = item
+
+                        if isinstance(value, (int, float)):
+                            metric_valeu = f"{value:.4f}"
+                        else:
+                            metric_valeu = str(value)
+
+                    if metric_name is not None:
+                        f.write(f"| {line_number} | {metric_name} | {metric_valeu} \n")
 
         f.write("\n## Detailed Results\n\n")
         f.write("Detailed results are available in the JSON file.\n")
@@ -421,7 +432,7 @@ def main():
         results = run_evaluation(dataset, evaluators, args.verbose)
 
         # Generate report
-        report_path = generate_report(results, args.output)
+        report_path = generate_report(results, metrics, args.output)
 
         print(f"\nEvaluation complete!")
         print(f"Results saved to: {report_path}")
