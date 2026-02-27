@@ -14,7 +14,7 @@ azureopenai==0.0.1
 certifi==2025.6.15
 cffi==1.17.1
 charset-normalizer==3.4.2
-cryptography==45.0.5
+cryptography==46.0.5
 distro==1.9.0
 frozenlist==1.7.0
 gitdb==4.0.12
